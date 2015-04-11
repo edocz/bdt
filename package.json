@@ -1,0 +1,19 @@
+{
+  "name"        : "baidu_disk_tool",
+  "version"     : "0.1.0",
+  "description" : "baidu cloud disk tool",
+  "keywords": [
+    "baidu",
+    "cloud",
+    "disk"
+  ],
+  "private": true,
+  "dependencies": {
+    "async"       : "*",
+    "request"     : "*",
+    "prompt"      : "*",
+    "nconf"       : "*",
+    "querystring" : "*",
+    "fs"          : "*"
+  }
+}

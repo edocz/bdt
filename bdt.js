@@ -3,7 +3,8 @@ var async 	= require('async'),
 	prompt  = require('prompt'),
 	config  = require('nconf'),
 	qs      = require('querystring'),
-	fs      = require('fs');
+	fs      = require('fs'),
+	open 	= require('open');
 
 var apis = {
 	df: {
@@ -46,9 +47,9 @@ var apis = {
 		description	: 	'查找文件',
 		execute		: 	find
 	},
-	offline: {
+	wget: {
 		description	:	'离线下载',
-		execute		:	offline
+		execute		:	wget
 	}
 };
 	
@@ -59,6 +60,9 @@ process.on('uncaughtException', function (err) {
 })
 
 config.argv().env().file({ file: 'config.json' });
+
+prompt.message = '';
+prompt.delimiter = '';
 prompt.start();
 
 var access_token  = config.get('access_token'),
@@ -70,10 +74,14 @@ if (access_token === undefined && refresh_token === undefined) {
 	console.log('未发现AccessToken, 即将初始化AccessToken');
 	initAccessToken();
 } else {
-	console.log('选择要执行的命令?');
-	for (api in apis) {
-		console.log(apis[api].description, api);
-	}
+	main();
+}
+
+function main () {
+	// console.log('选择要执行的命令?');
+	// for (api in apis) {
+	// 	console.log(apis[api].description, api);
+	// }
 
 	prompt.get(['command'], function (err, result) {
 		if (err) { return 1; }
@@ -98,9 +106,10 @@ function initAccessToken () {
 			});
 		},
 		function verifyCode(json, callback) {
-			console.log('访问 http://openapi.baidu.com/device');
-			console.log('输入 ' + json.user_code);
-			console.log('验证成功后按回车继续!');
+			open('http://openapi.baidu.com/device?display=page&code=' + json.user_code);
+			// console.log('访问 http://openapi.baidu.com/device');
+			// console.log('输入 ' + json.user_code);
+			// console.log('验证成功后按回车继续!');
 			
 			prompt.get(['isDone'], function (err, result) {
 				if (err) { return 1; }
@@ -133,16 +142,14 @@ function initAccessToken () {
 			config.save(function (err) {
 				if (err) return console.log(err);
 				console.log('保存配置成功!');
-				fs.readFile('config.json', function (err, data) {
-				  console.dir(data.toString())
-				});
+				callback(null, 'success');
 			});
 		}
 	], function(err, result) {
 		if (err) return;
 		access_token  = config.get('access_token');
 		refresh_token = config.get('refresh_token');
-		console.log(result);
+		process.nextTick(main);
 	});
 }
 
@@ -167,6 +174,7 @@ function df() {
 		var json = JSON.parse(body);
 		console.log('总量: ', Math.floor(json.quota/1024/1024/1024), 'GB');
 		console.log('已用: ', Math.floor(json.used/1024/1024/1024), 'GB');
+		process.nextTick(main);
 	});
 }
 
@@ -183,10 +191,11 @@ function put() {
 		}
 		var url = 'https://pcs.baidu.com/rest/2.0/pcs/file?' + qs.stringify(params);
 
-		var req = request.post(url, {}, function (err, response, body) {
+		var req = request.post(url, function (err, response, body) {
 			if (err) return console.log(err);
 			var json = JSON.parse(body);
 			console.log(json);
+			process.nextTick(main);
 		});
 		req.form().append('file', fs.createReadStream(result.src));
 	});
@@ -205,10 +214,11 @@ function puts() {
 		}
 		var url = 'https://pcs.baidu.com/rest/2.0/pcs/file?' + qs.stringify(params);
 
-		var req = request.post(url, {}, function (err, response, body) {
+		var req = request.post(url, function (err, response, body) {
 			if (err) return console.log(err);
 			var json = JSON.parse(body);
 			console.log(json);
+			process.nextTick(main);
 		});
 		req.form().append('file', fs.createReadStream(result.src));
 	});	
@@ -227,6 +237,7 @@ function get() {
 		};
 		var url = 'https://d.pcs.baidu.com/rest/2.0/pcs/file?' + qs.stringify(params);
 		request.get(url).pipe(fs.createWriteStream(result.dst));
+		process.nextTick(main);
 	});
 }
 
@@ -242,10 +253,11 @@ function mkdir() {
 		};
 		var url = 'https://pcs.baidu.com/rest/2.0/pcs/file?' + qs.stringify(params);
 
-		var req = request.post(url, {}, function (err, response, body) {
+		request.post(url, function (err, response, body) {
 			if (err) return console.log(err);
 			var json = JSON.parse(body);
 			console.log(json);
+			process.nextTick(main);
 		});
 	});
 }
@@ -262,10 +274,11 @@ function stat() {
 		}
 		var url = 'https://pcs.baidu.com/rest/2.0/pcs/file?' + qs.stringify(params);
 
-		var req = request.post(url, {}, function (err, response, body) {
+		request.post(url, function (err, response, body) {
 			if (err) return console.log(err);
 			var json = JSON.parse(body);
 			console.log(json);
+			process.nextTick(main);
 		});
 	});
 }
@@ -282,10 +295,11 @@ function ls() {
 		};
 		var url = 'https://pcs.baidu.com/rest/2.0/pcs/file?' + qs.stringify(params);
 
-		var req = request.post(url, {}, function (err, response, body) {
+		request.post(url, function (err, response, body) {
 			if (err) return console.log(err);
 			var json = JSON.parse(body);
 			console.log(json);
+			process.nextTick(main);
 		});
 	});
 }
@@ -304,10 +318,11 @@ function mv() {
 		};
 		var url = 'https://pcs.baidu.com/rest/2.0/pcs/file?' + qs.stringify(params);
 
-		var req = request.post(url, {}, function (err, response, body) {
+		request.post(url, function (err, response, body) {
 			if (err) return console.log('error ', err);
 			var json = JSON.parse(body);
 			console.log(json);
+			process.nextTick(main);
 		});
 	});
 }
@@ -326,10 +341,11 @@ function cp() {
 		};
 		var url = 'https://pcs.baidu.com/rest/2.0/pcs/file?' + qs.stringify(params);
 
-		var req = request.post(url, function (err, response, body) {
+		request.post(url, function (err, response, body) {
 			if (err) return console.log('error ', err);
 			var json = JSON.parse(body);
 			console.log(json);
+			process.nextTick(main);
 		});
 	});
 }
@@ -346,10 +362,11 @@ function rm() {
 		};
 		var url = 'https://pcs.baidu.com/rest/2.0/pcs/file?' + qs.stringify(params);
 
-		var req = request.post(url, function (err, response, body) {
+		request.post(url, function (err, response, body) {
 			if (err) return console.log('error ', err);
 			var json = JSON.parse(body);
 			console.log(json);
+			process.nextTick(main);
 		});
 	});
 }
@@ -368,19 +385,18 @@ function find() {
 		};
 		var url = 'https://pcs.baidu.com/rest/2.0/pcs/file?' + qs.stringify(params);
 
-		var req = request.post(url, function (err, response, body) {
+		request.post(url, function (err, response, body) {
 			if (err) return console.log('error ', err);
 			var json = JSON.parse(body);
 			console.log(json);
+			process.nextTick(main);
 		});
 	});
 }
 
-function offline() {
+function wget() {
 	prompt.get(['url', 'dir'], function (err, result) {
 		if (err) { return 1; }
-		console.log('输入下载链接:', result.url);
-		console.log('输入存储位置:', result.dir);
 
 		var params = {
 			method       : 'add_task',
@@ -390,10 +406,11 @@ function offline() {
 		};
 		var url = 'https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl?' + qs.stringify(params);
 
-		var req = request.post(url, {}, function (err, response, body) {
+		request.post(url, function (err, response, body) {
 			if (err) return console.log('error ', err);
 			var json = JSON.parse(body);
 			console.log(json);
+			process.nextTick(main);
 		});
 	});
 }
